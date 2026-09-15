@@ -16,6 +16,7 @@ The site is fully prerendered and deployed to Cloudflare Workers as static asset
 - Cloudflare Workers Builds (Git integration) uses build command `npx astro build` and deploy command `npx wrangler deploy`.
 - The `@astrojs/cloudflare` adapter is intentionally absent. Add it with `npx astro add cloudflare` only when on-demand rendering or Cloudflare bindings are needed, together with the `main` entry point documented in Cloudflare's Astro guide.
 - `not_found_handling: '404-page'` serves `dist/404.html`, generated from `src/pages/404.astro`; keep that page when the 404 routing behavior matters.
+- Cloudflare Workers Builds installs with the build image's npm 10.9.2 (`npm ci`). Local npm 11 drops the wasm32 optional chain (`@emnapi/core`, `@emnapi/runtime`) required by `sharp` and `@astrojs/*` from the lockfile, and `npm ci` then fails with `Missing: @emnapi/runtime@1.11.3 from lock file`. Regenerate lockfile changes with `npx npm@10.9.2 install --package-lock-only` and confirm with `npx npm@10.9.2 ci --dry-run` before committing.
 
 ## Documentation
 

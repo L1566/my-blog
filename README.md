@@ -67,3 +67,20 @@ npm run deploy         # astro build && wrangler deploy
 - `astro.config.mjs` 的 `site: 'https://littlework.top'` 决定 canonical、Open Graph、sitemap 与 RSS 里的绝对地址。在 `*.workers.dev` 上做可行性测试时，这些链接仍指向 `littlework.top`，属预期行为；正式域名绑定后即一致。
 - `wrangler.jsonc` 的 `not_found_handling: '404-page'` 让 Worker 在找不到资源时返回 `dist/404.html`（由 `src/pages/404.astro` 生成）以及 404 状态码。
 - 纯静态站点无法使用 Cloudflare 绑定（KV、D1、R2 等）。将来需要按需渲染或绑定资源时再执行 `npx astro add cloudflare`，并按 Cloudflare 文档给 `wrangler.jsonc` 补上 `main: "@astrojs/cloudflare/entrypoints/server"`。
+
+### lockfile 必须用 CI 的 npm 生成
+
+Cloudflare Workers Builds 用构建镜像自带的 **npm 10.9.2** 执行 `npm ci`，而 Node 24 本地自带 **npm 11**。`sharp` 与 `@astrojs/*` 把 wasm32 兜底二进制声明为可选依赖，npm 11 在本地安装时会把这条链的传递依赖（`@emnapi/core`、`@emnapi/runtime`）从 lockfile 里剪掉，导致 CI 直接失败：
+
+```text
+npm error `npm ci` can only install packages when your package.json and package-lock.json ... are in sync.
+npm error Missing: @emnapi/runtime@1.11.3 from lock file
+npm error Missing: @emnapi/core@1.11.3 from lock file
+```
+
+所以**改动依赖后不要把 npm 11 生成的 lockfile 直接提交**，先用与 CI 一致的版本重新生成并自检：
+
+```sh
+npx npm@10.9.2 install --package-lock-only   # 重新生成 lockfile
+npx npm@10.9.2 ci --dry-run                  # 输出 added N packages 才算通过
+```
