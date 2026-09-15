@@ -1,63 +1,69 @@
-# Astro Starter Kit: Blog
+# my-blog
 
-```sh
-npm create astro@latest -- --template blog
-```
+个人博客，基于 [Astro](https://astro.build) 7 的 Bear Blog 主题（MDX + RSS + Sitemap + 本地字体），以纯静态方式部署到 Cloudflare Workers 的静态资源（Static Assets）上。
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## 环境要求
 
-Features:
+- Node.js >= 22.12.0（Cloudflare Workers Builds 默认使用 Node 24，满足要求）
 
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and Open Graph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
+## 本地开发
 
-## 🚀 Project Structure
+| 命令 | 作用 |
+| :--- | :--- |
+| `npm install` | 安装依赖 |
+| `npm run dev` | 启动开发服务器 http://localhost:4321 |
+| `npm run build` | 生产构建，输出到 `./dist` |
+| `npm run preview` | 用 Astro 预览构建产物 |
+| `npm run preview:worker` | 构建后用 `wrangler dev` 在本地模拟 Cloudflare 线上行为 |
+| `npm run deploy` | 构建并部署到 Cloudflare Workers |
+| `npm run astro -- --help` | Astro CLI 帮助 |
 
-Inside of your Astro project, you'll see the following folders and files:
+## 目录结构
 
 ```text
-├── public/
+├── public/            # 原样拷贝的静态资源（favicon 等）
 ├── src/
-│   ├── assets/
-│   ├── components/
-│   ├── content/
-│   ├── layouts/
-│   └── pages/
-├── astro.config.mjs
-├── README.md
-├── package.json
-└── tsconfig.json
+│   ├── assets/        # 参与构建与优化的图片、字体
+│   ├── components/    # BaseHead / Header / Footer 等组件
+│   ├── content/blog/  # 博客文章（Markdown / MDX）
+│   ├── layouts/       # BlogPost 布局
+│   ├── pages/         # 路由：index、about、blog/[...slug]、rss.xml.js、404
+│   └── styles/        # 全局样式
+├── astro.config.mjs   # Astro 配置（site、MDX、Sitemap、字体）
+├── wrangler.jsonc     # Cloudflare Workers 配置（静态资源配置）
+└── package.json
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+写文章：在 `src/content/blog/` 新增 `.md`/`.mdx` 文件，frontmatter 字段（title、description、pubDate、heroImage）由 `src/content.config.ts` 校验。
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## 部署到 Cloudflare Workers
 
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
+`wrangler.jsonc` 里的 `assets.directory` 指向 `./dist`，且**没有** `main` 字段——这只上传静态资源，不部署 Worker 脚本。因此本项目不需要 `@astrojs/cloudflare` 适配器。
 
-Any static assets, like images, can be placed in the `public/` directory.
+### 方式一：本地命令行（首次验证可行性）
 
-## 🧞 Commands
+```sh
+npx wrangler login     # 浏览器授权 Cloudflare 账号，只需一次
+npm run deploy         # astro build && wrangler deploy
+```
 
-All commands are run from the root of the project, from a terminal:
+首次部署会在账号下创建名为 `my-blog` 的 Worker，并输出访问地址 `https://my-blog.<你的账号子域>.workers.dev`。
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+### 方式二：Cloudflare Workers Builds（Git 推送自动部署）
 
-## 👀 Want to learn more?
+1. 把仓库推送到 GitHub（当前远端为 `L1566/my-blog`）。
+2. 打开 <https://dash.cloudflare.com> → `Compute` → `Workers & Pages` → `Create application` → `Import a repository`，选择 `L1566/my-blog`。
+3. 构建配置：
+   - Build command：`npx astro build`
+   - Deploy command：`npx wrangler deploy`
+4. `Save and Deploy`。此后每次 push 都会自动构建并部署，PR 还会生成预览地址。
 
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+### 绑定自定义域名（littlework.top）
 
-## Credit
+`Workers & Pages` → 选择 `my-blog` → `Settings` → `Domains & Routes` → `Add` → `Custom domain` → 填写 `littlework.top`。域名需已托管在同一个 Cloudflare 账号下，DNS 记录由 Cloudflare 自动创建。
 
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).
+## 配置说明
+
+- `astro.config.mjs` 的 `site: 'https://littlework.top'` 决定 canonical、Open Graph、sitemap 与 RSS 里的绝对地址。在 `*.workers.dev` 上做可行性测试时，这些链接仍指向 `littlework.top`，属预期行为；正式域名绑定后即一致。
+- `wrangler.jsonc` 的 `not_found_handling: '404-page'` 让 Worker 在找不到资源时返回 `dist/404.html`（由 `src/pages/404.astro` 生成）以及 404 状态码。
+- 纯静态站点无法使用 Cloudflare 绑定（KV、D1、R2 等）。将来需要按需渲染或绑定资源时再执行 `npx astro add cloudflare`，并按 Cloudflare 文档给 `wrangler.jsonc` 补上 `main: "@astrojs/cloudflare/entrypoints/server"`。

@@ -1,0 +1,12 @@
+{
+	// Static Astro blog: this Worker serves only the build output in ./dist.
+	// There is no "main" entry point, so no Worker script is uploaded or billed.
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "my-blog",
+	"compatibility_date": "2026-09-15",
+	"assets": {
+		"directory": "./dist",
+		"html_handling": "auto-trailing-slash",
+		"not_found_handling": "404-page"
+	}
+}

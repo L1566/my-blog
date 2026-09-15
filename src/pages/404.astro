@@ -1,0 +1,21 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="404 · Page not found" description="The page you requested does not exist." />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>404</h1>
+			<p>This page does not exist. It may have been moved or deleted.</p>
+			<p><a href="/">Back to the home page</a></p>
+		</main>
+		<Footer />
+	</body>
+</html>
